@@ -24,10 +24,10 @@ const xAxis = data.map(item => item.year);
 const powerInstalled = data.map(item => item.data?.bruttoleistungSumme);
 const powerInstalledNet = data.map(item => item.data?.nettoleistungSumme);
 
-const averageInstallationRate = getAverageDiff(powerInstalled.filter(Boolean));
-let predictionValue = powerInstalled[powerInstalled.filter(Boolean).length - 1];
+const averageInstallationRate = getAverageDiff(powerInstalledNet.filter(Boolean));
+let predictionValue = powerInstalledNet[powerInstalledNet.filter(Boolean).length - 1];
 
-const prediction = powerInstalled.map(value => {
+const prediction = powerInstalledNet.map(value => {
     if (value) {
         predictionValue = value;
         return null;
