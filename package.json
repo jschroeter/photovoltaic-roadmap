@@ -1,0 +1,11 @@
+{
+  "name": "photovoltaic-roadmap",
+  "private": true,
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitropack": "2.6.3"
+  }
+}
