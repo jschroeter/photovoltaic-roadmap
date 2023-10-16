@@ -21,21 +21,12 @@ const getAverageDiff = ([x, ...xs]) => {
 const data = await fetchJson('/data');
 
 const xAxis = data.map(item => item.year);
-const powerInstalled = data.map(item => item.data?.bruttoleistungSumme);
 const powerInstalledNet = data.map(item => item.data?.nettoleistungSumme);
 
 const averageInstallationRate = getAverageDiff(powerInstalledNet.filter(Boolean));
-let predictionValue = powerInstalledNet[powerInstalledNet.filter(Boolean).length - 1];
+const indexOfLastYearWithValue = powerInstalledNet.filter(Boolean).length - 1;
+let prediction = powerInstalledNet[indexOfLastYearWithValue] + averageInstallationRate;
 
-const prediction = powerInstalledNet.map(value => {
-    if (value) {
-        predictionValue = value;
-        return null;
-    } else {
-        predictionValue += averageInstallationRate;
-        return predictionValue;
-    }
-});
 
 
 // based on prepared DOM, initialize echarts instance
@@ -49,14 +40,11 @@ const seriesDefaults = {
     label: {
         show: true,
         position: 'top',
-        formatter: (item) => item.value ? (item.value / 1000).toFixed(1) + ' MWp' : '-',
+        formatter: (item) => item.value ? (item.value / 1000).toFixed(1) : '-',
         fontSize: 16,
         fontWeight: 700
     },
-    areaStyle: {},
-    emphasis: {
-        focus: 'series'
-    }
+    areaStyle: {}
 };
 
 const option = {
@@ -65,7 +53,7 @@ const option = {
     },
     tooltip: {
         trigger: 'axis',
-        valueFormatter: (value) => value ? (value / 1000).toFixed(1) + ' MWp' : '-',
+        valueFormatter: (value) => value ? (value / 1000).toFixed(1) + ' MWp' : '?',
         axisPointer: {
             type: 'cross',
             label: {
@@ -96,7 +84,10 @@ const option = {
     ],
     yAxis: [
         {
-            type: 'value'
+            type: 'value',
+            axisLabel: {
+                formatter: (value) => (value / 1000).toFixed(0) + ' MWp',
+            }
         }
     ],
     series: [
@@ -108,19 +99,34 @@ const option = {
         },
         {
             ...seriesDefaults,
-            name: 'Installierte Leistung (brutto)',
-            data: powerInstalled
+            name: 'Installierte Leistung',
+            data: powerInstalledNet,
+            markPoint: {
+                symbol: 'circle',
+                symbolSize: 30,
+                itemStyle: {
+                    color: 'transparent',
+                    borderColor: 'red',
+                    borderWidth: 4
+                },
+                label: {
+                    fontWeight: 'bold',
+                    color: '#fff'
+                },
+                data: [{
+                    name: 'Prognose',
+                    value: 'Prognose',
+                    xAxis: indexOfLastYearWithValue,
+                    yAxis: prediction
+                }, {
+                    name: 'Prognose mit PV an B33',
+                    value: 'Prognose mit PV an B33',
+                    xAxis: '2024',
+                    yAxis: prediction + (750 * 2)
+                }]
+            },
+
         },
-        {
-            ...seriesDefaults,
-            name: 'Installierte Leistung (netto)',
-            data: powerInstalledNet
-        },
-        {
-            ...seriesDefaults,
-            name: 'Schätzung bei bisheriger Ausbaurate',
-            data: prediction
-        }
     ]
 };
 
