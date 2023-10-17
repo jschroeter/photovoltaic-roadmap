@@ -1,19 +1,23 @@
 export default defineCachedEventHandler(async () => {
   const numberOfYears = 11;
   const years = Array.from(Array(numberOfYears).keys()).map(value => 2020 + value);
-  const currentYear = new Date().getFullYear();
+  const currentDate = new Date();
   const requests = years.map(async (year) => {
     let data = null;
-    if (year <= currentYear) {
-      const date = `31.12.${year}`;
+    let date = new Date(year, 11, 31);
+    if (year <= currentDate.getFullYear()) {
+      if (year === currentDate.getFullYear()) {
+        date = currentDate;
+      }
+      
       data = await $fetch(
         'https://www.marktstammdatenregister.de/MaStR/Einheit/EinheitJson/GetSummenDerLeistungswerte',
-        { query: { gridName: 'SEE', filter: `Inbetriebnahmedatum der Einheit~lt~'${date}'~and~Energieträger~eq~'2495'~and~Gemeinde~eq~'allensbach'` } }
+        { query: { gridName: 'SEE', filter: `Inbetriebnahmedatum der Einheit~lt~'${date.toLocaleDateString('de-DE')}'~and~Energieträger~eq~'2495'~and~Gemeinde~eq~'allensbach'` } }
       );
     }
 
     return {
-      year,
+      date,
       data
     }
   });

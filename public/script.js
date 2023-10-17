@@ -20,13 +20,13 @@ const getAverageDiff = ([x, ...xs]) => {
 
 const data = await fetchJson('/data');
 
-const xAxis = data.map(item => item.year);
-const powerInstalledNet = data.map(item => item.data?.nettoleistungSumme);
+const powerInstalledNet = data.map(item => [item.date, item.data?.nettoleistungSumme]);
 
-const averageInstallationRate = getAverageDiff(powerInstalledNet.filter(Boolean));
-const indexOfLastYearWithValue = powerInstalledNet.filter(Boolean).length - 1;
-let prediction = powerInstalledNet[indexOfLastYearWithValue] + averageInstallationRate;
-
+const onlyWithValue = powerInstalledNet.filter(item => Boolean(item[1]));
+const averageInstallationRate = getAverageDiff(onlyWithValue.map(item => item[1]));
+const indexOfLastYearWithValue = onlyWithValue.length - 1;
+const lastUpdate = new Date(powerInstalledNet[indexOfLastYearWithValue][0]);
+let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstallationRate;
 
 
 // based on prepared DOM, initialize echarts instance
@@ -40,29 +40,35 @@ const seriesDefaults = {
     label: {
         show: true,
         position: 'top',
-        formatter: (item) => item.value ? (item.value / 1000).toFixed(1) : '-',
-        fontSize: 16,
-        fontWeight: 700
+        formatter: (item) => (item.value[1] / 1000).toFixed(1),
+        fontSize: 18,
+        fontWeight: 'bold',
+        textBorderWidth: 3
     },
-    areaStyle: {}
+    lineStyle: {
+        width: 4
+    },
+    areaStyle: {
+        opacity: 0.4
+    }
 };
 
 const option = {
     title: {
-        text: 'Photovoltaik in Allensbach'
+        text: 'Photovoltaik in Allensbach bis 2030',
+        subtext: 'Stand: ' + lastUpdate.toLocaleDateString('de-DE')
     },
     tooltip: {
         trigger: 'axis',
         valueFormatter: (value) => value ? (value / 1000).toFixed(1) + ' MWp' : '?',
-        axisPointer: {
-            type: 'cross',
-            label: {
-                backgroundColor: '#6a7985'
-            }
-        }
     },
     legend: {
-        data: ['', '']
+        data: ['Installierte Leistung', 'Ziel'],
+        right: '10%',
+        textStyle: {
+            fontSize: 18
+        }
+        
     },
     toolbox: {
         feature: {
@@ -77,9 +83,9 @@ const option = {
     },
     xAxis: [
         {
-            type: 'category',
+            type: 'time',
             boundaryGap: false,
-            data: xAxis
+            maxInterval: 3600 * 1000 * 24 * 28 * 12
         }
     ],
     yAxis: [
@@ -87,15 +93,32 @@ const option = {
             type: 'value',
             axisLabel: {
                 formatter: (value) => (value / 1000).toFixed(0) + ' MWp',
-            }
+            },
+            max: 'dataMax'
         }
     ],
     series: [
         {
             ...seriesDefaults,
             name: 'Ziel',
-            data: [2102, 3300, 4400, 5400, 6500, 7600, 8700, 9800, 10800, 11900, 13000],
-            color: 'green'
+            data: [
+                [new Date(2020, 11, 31), 2102],
+                [new Date(2021, 11, 31), 3280],
+                [new Date(2022, 11, 31), 4360],
+                [new Date(2023, 11, 31), 5440],
+                [new Date(2024, 11, 31), 6520],
+                [new Date(2025, 11, 31), 7600],
+                [new Date(2026, 11, 31), 8680],
+                [new Date(2027, 11, 31), 9760],
+                [new Date(2028, 11, 31), 10840],
+                [new Date(2029, 11, 31), 11920],
+                [new Date(2030, 11, 31), 13000],
+            ],
+            color: 'green',
+            lineStyle: {
+                type: 'dashed',
+                width: 4
+            }
         },
         {
             ...seriesDefaults,
@@ -110,19 +133,21 @@ const option = {
                     borderWidth: 4
                 },
                 label: {
+                    position: ['130%', '30%'],
+                    fontSize: 18,
                     fontWeight: 'bold',
-                    color: '#fff'
+                    color: '#000',
+                    textBorderColor: '#fff',
+                    textBorderWidth: 3
                 },
                 data: [{
-                    name: 'Prognose',
                     value: 'Prognose',
-                    xAxis: indexOfLastYearWithValue,
+                    xAxis: new Date(2023, 11, 31),
                     yAxis: prediction
                 }, {
-                    name: 'Prognose mit PV an B33',
                     value: 'Prognose mit PV an B33',
-                    xAxis: '2024',
-                    yAxis: prediction + (750 * 2)
+                    xAxis: new Date(2024, 5, 31),
+                    yAxis: prediction + 1800
                 }]
             },
 
