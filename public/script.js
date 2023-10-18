@@ -90,7 +90,10 @@ const option = {
         {
             type: 'time',
             boundaryGap: false,
-            maxInterval: 3600 * 1000 * 24 * 28 * 12
+            splitNumber: 11,
+            axisLabel: {
+                fontSize: 18
+            }
         }
     ],
     yAxis: [
@@ -98,6 +101,7 @@ const option = {
             type: 'value',
             axisLabel: {
                 formatter: (value) => (value / 1000).toFixed(0) + ' MWp',
+                fontSize: 18
             },
             max: 'dataMax'
         }
