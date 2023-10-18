@@ -31,7 +31,7 @@ let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstall
 
 // based on prepared DOM, initialize echarts instance
 const myChart = echarts.init(document.getElementById('chart'), null, {
-    renderer: 'svg'
+    //renderer: 'svg'
 });
 
 const seriesDefaults = {
