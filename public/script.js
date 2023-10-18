@@ -25,7 +25,7 @@ const powerInstalledNet = data.map(item => [item.date, item.data?.nettoleistungS
 const onlyWithValue = powerInstalledNet.filter(item => Boolean(item[1]));
 const averageInstallationRate = getAverageDiff(onlyWithValue.map(item => item[1]));
 const indexOfLastYearWithValue = onlyWithValue.length - 1;
-const lastUpdate = new Date(powerInstalledNet[indexOfLastYearWithValue][0]);
+const lastUpdateDate = new Date(powerInstalledNet[indexOfLastYearWithValue][0]);
 let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstallationRate;
 
 
@@ -56,19 +56,24 @@ const seriesDefaults = {
 const option = {
     title: {
         text: 'Photovoltaik in Allensbach bis 2030',
-        subtext: 'Stand: ' + lastUpdate.toLocaleDateString('de-DE')
+        padding: [5, 0, 0, 5],
+        subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
+        subtextStyle: {
+            fontSize: 15
+        }
     },
     tooltip: {
         trigger: 'axis',
         valueFormatter: (value) => value ? (value / 1000).toFixed(1) + ' MWp' : '?',
     },
     legend: {
+        icon: 'rect',
         data: ['Installierte Leistung', 'Ziel'],
         right: '10%',
         textStyle: {
             fontSize: 18
-        }
-        
+        },
+        selectedMode: false
     },
     toolbox: {
         feature: {
@@ -114,7 +119,7 @@ const option = {
                 [new Date(2029, 11, 31), 11920],
                 [new Date(2030, 11, 31), 13000],
             ],
-            color: 'green',
+            color: '#6aa84f',
             lineStyle: {
                 type: 'dashed',
                 width: 4
@@ -140,14 +145,14 @@ const option = {
                     textBorderColor: '#fff',
                     textBorderWidth: 3
                 },
-                data: [{
+                data: [/*{
                     value: 'Prognose',
                     xAxis: new Date(2023, 11, 31),
                     yAxis: prediction
-                }, {
+                }, */{
                     value: 'Prognose mit PV an B33',
                     xAxis: new Date(2024, 5, 31),
-                    yAxis: prediction + 1800
+                    yAxis: 3600 + 300 + 200 + 1800
                 }]
             },
 
