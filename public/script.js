@@ -18,7 +18,15 @@ const getAverageDiff = ([x, ...xs]) => {
     return average(xs.reduce(([acc, last], x) => [[...acc, x - last], x], [[], x])[0]);
 }
 
-const data = await fetchJson('/data');
+const urlParams = new URLSearchParams(window.location.search);
+if (!urlParams.get('municipality')) {
+    urlParams.set('municipality', 'Allensbach')
+}
+const municipality = urlParams.get('municipality');
+const targetValue = urlParams.get('target') || 13000;
+const targetYear = 2030;
+
+const data = await fetchJson('/data?' + urlParams);
 
 const powerInstalledNet = data.map(item => [item.date, item.data?.nettoleistungSumme]);
 
@@ -27,6 +35,33 @@ const averageInstallationRate = getAverageDiff(onlyWithValue.map(item => item[1]
 const indexOfLastYearWithValue = onlyWithValue.length - 1;
 const lastUpdateDate = new Date(powerInstalledNet[indexOfLastYearWithValue][0]);
 let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstallationRate;
+
+function buildTargetSeriesData() {
+    let currentValue = data[0].data.nettoleistungSumme;
+    const stepToTarget = (targetValue - currentValue) / (data.length - 1);
+debugger;
+    const targetData = data.map((item, index) => {
+        if (index > 0) {
+            currentValue += stepToTarget;
+        }
+        return [
+            new Date(item.date).setMonth(11, 31),
+            currentValue
+        ]
+    });
+
+    return targetData;
+}
+
+function buildMarkerPoints() {
+    if (municipality !== 'Allensbach') return;
+
+    return [{
+        value: 'Prognose mit PV an B33',
+        xAxis: new Date(2024, 5, 31),
+        yAxis: 3600 + 300 + 200 + 1800
+    }];
+}
 
 
 // based on prepared DOM, initialize echarts instance
@@ -55,7 +90,7 @@ const seriesDefaults = {
 
 const option = {
     title: {
-        text: 'Photovoltaik in Allensbach bis 2030',
+        text: `Photovoltaik in ${municipality} bis 2030`,
         padding: [5, 0, 0, 5],
         subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
         subtextStyle: {
@@ -110,19 +145,7 @@ const option = {
         {
             ...seriesDefaults,
             name: 'Ziel',
-            data: [
-                [new Date(2020, 11, 31), 2102],
-                [new Date(2021, 11, 31), 3280],
-                [new Date(2022, 11, 31), 4360],
-                [new Date(2023, 11, 31), 5440],
-                [new Date(2024, 11, 31), 6520],
-                [new Date(2025, 11, 31), 7600],
-                [new Date(2026, 11, 31), 8680],
-                [new Date(2027, 11, 31), 9760],
-                [new Date(2028, 11, 31), 10840],
-                [new Date(2029, 11, 31), 11920],
-                [new Date(2030, 11, 31), 13000],
-            ],
+            data: buildTargetSeriesData(),
             color: '#6aa84f',
             lineStyle: {
                 type: 'dashed',
@@ -149,15 +172,7 @@ const option = {
                     textBorderColor: '#fff',
                     textBorderWidth: 3
                 },
-                data: [/*{
-                    value: 'Prognose',
-                    xAxis: new Date(2023, 11, 31),
-                    yAxis: prediction
-                }, */{
-                    value: 'Prognose mit PV an B33',
-                    xAxis: new Date(2024, 5, 31),
-                    yAxis: 3600 + 300 + 200 + 1800
-                }]
+                data: buildMarkerPoints()
             },
 
         },
