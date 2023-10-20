@@ -39,7 +39,6 @@ let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstall
 function buildTargetSeriesData() {
     let currentValue = data[0].data.nettoleistungSumme;
     const stepToTarget = (targetValue - currentValue) / (data.length - 1);
-debugger;
     const targetData = data.map((item, index) => {
         if (index > 0) {
             currentValue += stepToTarget;

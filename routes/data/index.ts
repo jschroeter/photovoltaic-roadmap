@@ -26,5 +26,9 @@ export default defineCachedEventHandler(async (event) => {
 
   return Promise.all(requests);
 }, {
-  maxAge: 0 //60 * 60 // 1h
+  getKey(event) {
+    const municipality = new URL('http://' + event.path).searchParams.get('municipality');
+    return new Date().toDateString() + municipality
+  },
+  maxAge: 60 * 60 // 1h
 });
