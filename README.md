@@ -5,6 +5,8 @@ It fetches the past and up-to-date data from [Marktstammdatenregister](https://w
 
 ## Demo
 
+[![Preview of the app](preview.avif)](https://pv-roadmap.netlify.app/)
+
 It's deployed at https://pv-roadmap.netlify.app/
 
 ## Parameters
