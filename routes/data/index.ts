@@ -12,9 +12,10 @@ export default defineCachedEventHandler(async (event) => {
         date = currentDate;
       }
       
+      const localeDateString = date.toLocaleDateString('de-DE', {year: "numeric", month: "2-digit", day: "2-digit"});
       data = await $fetch(
         'https://www.marktstammdatenregister.de/MaStR/Einheit/EinheitJson/GetSummenDerLeistungswerte',
-        { query: { gridName: 'SEE', filter: `Inbetriebnahmedatum der Einheit~lt~'${date.toLocaleDateString('de-DE')}'~and~Energieträger~eq~'2495'~and~Gemeinde~eq~'${municipality}'` } }
+        { query: { gridName: 'SEE', filter: `Inbetriebnahmedatum der Einheit~lt~'${localeDateString}'~and~Energieträger~eq~'2495'~and~Gemeinde~eq~'${municipality}'` } }
       );
     }
 

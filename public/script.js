@@ -98,7 +98,7 @@ const option = {
     },
     tooltip: {
         trigger: 'axis',
-        valueFormatter: (value) => value ? (value / 1000).toFixed(1) + ' MWp' : '?',
+        valueFormatter: (value) => value ? (value / 1000).toFixed(2) + ' MWp' : '?',
     },
     legend: {
         icon: 'rect',
