@@ -56,9 +56,9 @@ function buildMarkerPoints() {
     if (municipality !== 'Allensbach') return;
 
     return [{
-        value: 'Prognose mit PV an B33',
-        xAxis: new Date(2024, 5, 31),
-        yAxis: 3600 + 300 + 200 + 1800
+        value: 'Inbetriebnahme PV an B33',
+        xAxis: new Date(2024, 5, 1),
+        yAxis: 5890
     }];
 }
 
