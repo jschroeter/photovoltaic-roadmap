@@ -9,7 +9,7 @@ Open to be used by anyone, just provide the name of the municipality and the tar
 
 e.g.:
 - https://pv-roadmap.netlify.app/?municipality=Allensbach&target=13000
-- https://pv-roadmap.netlify.app/?municipality=Konstanz&target=50000
+- https://pv-roadmap.netlify.app/?municipality=Konstanz&target=100000
 
 It fetches the past and up-to-date data from [Marktstammdatenregister](https://www.marktstammdatenregister.de/MaStR) by Bundesnetzagentur.
 
