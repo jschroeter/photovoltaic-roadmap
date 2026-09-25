@@ -38,6 +38,23 @@ function buildTargetSeriesData() {
     ]);
 }
 
+const targetSeriesData = buildTargetSeriesData();
+
+function findYearEndValue(series, date) {
+    const year = new Date(date).getFullYear();
+    const point = series.find(item => new Date(item[0]).getMonth() === 11 && new Date(item[0]).getFullYear() === year);
+    return point?.[1];
+}
+
+// at each year end the label of the higher value goes above, the lower one below, so they don't overlap
+function withLabelPositions(series, otherSeries) {
+    return series.map(([date, value]) => {
+        const otherValue = findYearEndValue(otherSeries, date);
+        const position = otherValue !== undefined && new Date(date).getMonth() === 11 && value < otherValue ? 'bottom' : 'top';
+        return { value: [date, value], label: { position } };
+    });
+}
+
 function buildMarkerPoints() {
     if (municipality !== 'Allensbach') return;
 
@@ -134,7 +151,7 @@ const option = {
         {
             ...seriesDefaults,
             name: 'Ziel',
-            data: buildTargetSeriesData(),
+            data: withLabelPositions(targetSeriesData, powerInstalledNet),
             color: '#6aa84f',
             lineStyle: {
                 type: 'dashed',
@@ -144,7 +161,7 @@ const option = {
         {
             ...seriesDefaults,
             name: 'Installierte Leistung',
-            data: powerInstalledNet,
+            data: withLabelPositions(powerInstalledNet, targetSeriesData),
             showAllSymbol: true,
             symbolSize: (value) => isLabeledPoint(value[0]) ? 4 : 0,
             label: {
