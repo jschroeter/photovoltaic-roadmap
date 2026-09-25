@@ -177,7 +177,10 @@ const option = {
                     borderWidth: 4
                 },
                 label: {
-                    position: ['130%', '110%'],
+                    // above left of the marker, in the free space above the target line
+                    position: ['10%', '0%'],
+                    align: 'right',
+                    verticalAlign: 'bottom',
                     fontSize: 18,
                     fontWeight: 'bold',
                     color: '#000',
