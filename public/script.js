@@ -177,7 +177,7 @@ const option = {
                     borderWidth: 4
                 },
                 label: {
-                    position: ['130%', '30%'],
+                    position: ['130%', '110%'],
                     fontSize: 18,
                     fontWeight: 'bold',
                     color: '#000',
