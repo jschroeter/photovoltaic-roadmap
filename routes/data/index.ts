@@ -35,8 +35,6 @@ async function fetchUnits(municipality: string) {
 }
 
 export default defineCachedEventHandler(async (event) => {
-  const numberOfYears = 11;
-  const years = Array.from(Array(numberOfYears).keys()).map(value => 2020 + value);
   const currentDate = new Date();
   const municipality = new URL('http://' + event.path).searchParams.get('municipality');
 
@@ -47,33 +45,36 @@ export default defineCachedEventHandler(async (event) => {
     gross: unit.Bruttoleistung ?? 0
   }));
 
-  return years.map((year) => {
-    let data = null;
-    let date = new Date(year, 11, 31);
-    if (year <= currentDate.getFullYear()) {
-      if (year === currentDate.getFullYear()) {
-        date = currentDate;
-      }
+  // one entry per month end from December 2020 until today
+  const result = [];
+  for (let month = 11; ; month++) {
+    let date = new Date(2020, month + 1, 0);
+    // include units commissioned on the last day of the month
+    let cutoff = new Date(2020, month + 1, 1).getTime();
+    if (date >= currentDate) {
+      date = currentDate;
+      cutoff = currentDate.getTime();
+    }
 
-      // same semantics as the former filter: commissioned before the date, minus decommissioned units
-      const time = date.getTime();
-      const active = units.filter(unit => unit.start !== null && unit.start < time && (unit.end === null || unit.end >= time));
-      data = {
+    // commissioned before the cutoff, minus permanently decommissioned units
+    const active = units.filter(unit => unit.start !== null && unit.start < cutoff && (unit.end === null || unit.end >= cutoff));
+    result.push({
+      date,
+      data: {
         bruttoleistungSumme: active.reduce((sum, unit) => sum + unit.gross, 0),
         nettoleistungSumme: active.reduce((sum, unit) => sum + unit.net, 0)
-      };
-    }
+      }
+    });
 
-    return {
-      date,
-      data
+    if (date === currentDate) {
+      return result;
     }
-  });
+  }
 }, {
 
   getKey(event) {
     const municipality = new URL('http://' + event.path).searchParams.get('municipality');
-    return new Date().toDateString() + municipality
+    return 'monthly-' + new Date().toDateString() + municipality
   },
   maxAge: 60 * 60 * 24 // 1d
 });

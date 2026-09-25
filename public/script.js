@@ -9,15 +9,6 @@ async function fetchJson(url) {
     return data;
 }
 
-const getAverageDiff = ([x, ...xs]) => {
-    // https://stackoverflow.com/a/40247111
-    const add = (x, y) => x + y
-    const sum = xs => xs.reduce(add, 0)
-    const average = xs => xs[0] === undefined ? NaN : sum(xs) / xs.length
-
-    return average(xs.reduce(([acc, last], x) => [[...acc, x - last], x], [[], x])[0]);
-}
-
 const urlParams = new URLSearchParams(window.location.search);
 if (!urlParams.get('municipality')) {
     urlParams.set('municipality', 'Allensbach')
@@ -28,37 +19,36 @@ const targetYear = 2030;
 
 const data = await fetchJson('/data?' + urlParams);
 
-const powerInstalledNet = data.map(item => [item.date, item.data?.nettoleistungSumme]);
+const powerInstalledNet = data.map(item => [item.date, item.data.nettoleistungSumme]);
+const lastUpdateDate = new Date(data[data.length - 1].date);
 
-const onlyWithValue = powerInstalledNet.filter(item => Boolean(item[1]));
-const averageInstallationRate = getAverageDiff(onlyWithValue.map(item => item[1]));
-const indexOfLastYearWithValue = onlyWithValue.length - 1;
-const lastUpdateDate = new Date(powerInstalledNet[indexOfLastYearWithValue][0]);
-let prediction = powerInstalledNet[indexOfLastYearWithValue][1] + averageInstallationRate;
+// label only the year ends and the latest value, monthly values are shown in the tooltip
+function isLabeledPoint(date) {
+    return new Date(date).getMonth() === 11 || new Date(date).getTime() === lastUpdateDate.getTime();
+}
 
 function buildTargetSeriesData() {
-    let currentValue = data[0].data.nettoleistungSumme;
-    const stepToTarget = (targetValue - currentValue) / (data.length - 1);
-    const targetData = data.map((item, index) => {
-        if (index > 0) {
-            currentValue += stepToTarget;
-        }
-        return [
-            new Date(item.date).setMonth(11, 31),
-            currentValue
-        ]
-    });
+    const startYear = new Date(data[0].date).getFullYear();
+    const startValue = data[0].data.nettoleistungSumme;
+    const stepToTarget = (targetValue - startValue) / (targetYear - startYear);
 
-    return targetData;
+    return Array.from(Array(targetYear - startYear + 1).keys()).map(index => [
+        new Date(startYear + index, 11, 31).getTime(),
+        startValue + index * stepToTarget
+    ]);
 }
 
 function buildMarkerPoints() {
     if (municipality !== 'Allensbach') return;
 
+    const b33Date = new Date(2024, 4, 31);
+    const point = powerInstalledNet.find(item => new Date(item[0]) >= b33Date);
+    if (!point) return;
+
     return [{
         value: 'Inbetriebnahme PV an B33',
-        xAxis: new Date(2024, 5, 1),
-        yAxis: 5890
+        xAxis: new Date(point[0]),
+        yAxis: point[1]
     }];
 }
 
@@ -155,6 +145,12 @@ const option = {
             ...seriesDefaults,
             name: 'Installierte Leistung',
             data: powerInstalledNet,
+            showAllSymbol: true,
+            symbolSize: (value) => isLabeledPoint(value[0]) ? 4 : 0,
+            label: {
+                ...seriesDefaults.label,
+                formatter: (item) => isLabeledPoint(item.value[0]) ? seriesDefaults.label.formatter(item) : ''
+            },
             markPoint: {
                 symbol: 'circle',
                 symbolSize: 30,
