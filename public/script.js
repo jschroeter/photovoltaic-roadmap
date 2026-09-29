@@ -20,6 +20,7 @@ const targetYear = 2030;
 const data = await fetchJson('/data?' + urlParams);
 
 const powerInstalledNet = data.map(item => [item.date, item.data.nettoleistungSumme]);
+const batteryCapacity = data.map(item => [item.date, item.data.batteriekapazitaetSumme]);
 const lastUpdateDate = new Date(data[data.length - 1].date);
 
 // label only the year ends and the latest value, monthly values are shown in the tooltip
@@ -39,6 +40,12 @@ function buildTargetSeriesData() {
 }
 
 const targetSeriesData = buildTargetSeriesData();
+
+// the PV chart and the battery chart below share the same time range
+const xAxisRange = {
+    min: new Date(data[0].date).getTime(),
+    max: targetSeriesData[targetSeriesData.length - 1][0]
+};
 
 function findYearEndValue(series, date) {
     const year = new Date(date).getFullYear();
@@ -95,17 +102,30 @@ const seriesDefaults = {
 };
 
 const option = {
-    title: {
-        text: `Photovoltaik in ${municipality} bis 2030`,
-        padding: [5, 0, 0, 5],
-        subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
-        subtextStyle: {
-            fontSize: 15
+    title: [
+        {
+            text: `Photovoltaik in ${municipality} bis 2030`,
+            padding: [5, 0, 0, 5],
+            subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
+            subtextStyle: {
+                fontSize: 15
+            }
+        },
+        {
+            text: 'Batteriespeicher (nutzbare Kapazität)',
+            top: '70%',
+            padding: [5, 0, 0, 5],
+            textStyle: {
+                fontSize: 15
+            }
         }
-    },
+    ],
     tooltip: {
         trigger: 'axis',
         valueFormatter: (value) => value ? (value / 1000).toFixed(2) + ' MWp' : '?',
+    },
+    axisPointer: {
+        link: [{ xAxisIndex: 'all' }]
     },
     legend: {
         icon: 'rect',
@@ -121,19 +141,39 @@ const option = {
             saveAsImage: {}
         }
     },
-    grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
-    },
+    // fixed widths instead of containLabel, so both charts are aligned horizontally
+    grid: [
+        {
+            left: 110,
+            right: 40,
+            top: 60,
+            bottom: '35%'
+        },
+        {
+            left: 110,
+            right: 40,
+            top: '78%',
+            bottom: 40
+        }
+    ],
     xAxis: [
         {
             type: 'time',
             boundaryGap: false,
             splitNumber: 11,
+            ...xAxisRange,
             axisLabel: {
                 fontSize: 18
+            }
+        },
+        {
+            type: 'time',
+            gridIndex: 1,
+            boundaryGap: false,
+            splitNumber: 11,
+            ...xAxisRange,
+            axisLabel: {
+                fontSize: 15
             }
         }
     ],
@@ -145,6 +185,15 @@ const option = {
                 fontSize: 18
             },
             max: 'dataMax'
+        },
+        {
+            type: 'value',
+            gridIndex: 1,
+            splitNumber: 2,
+            axisLabel: {
+                formatter: (value) => (value / 1000).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MWh',
+                fontSize: 15
+            }
         }
     ],
     series: [
@@ -191,6 +240,27 @@ const option = {
             },
 
         },
+        {
+            ...seriesDefaults,
+            name: 'Batteriespeicher',
+            xAxisIndex: 1,
+            yAxisIndex: 1,
+            data: batteryCapacity,
+            color: '#e69138',
+            showAllSymbol: true,
+            symbolSize: (value) => isLabeledPoint(value[0]) ? 4 : 0,
+            label: {
+                ...seriesDefaults.label,
+                fontSize: 15,
+                formatter: (item) => isLabeledPoint(item.value[0]) ? seriesDefaults.label.formatter(item) : ''
+            },
+            lineStyle: {
+                width: 3
+            },
+            tooltip: {
+                valueFormatter: (value) => (value / 1000).toFixed(2) + ' MWh'
+            }
+        }
     ]
 };
 
