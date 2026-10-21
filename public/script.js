@@ -17,7 +17,32 @@ const municipality = urlParams.get('municipality');
 const targetValue = urlParams.get('target') || 13000;
 const targetYear = 2030;
 
-const data = await fetchJson('/data?' + urlParams);
+// based on prepared DOM, initialize echarts instance
+const myChart = echarts.init(document.getElementById('chart'), null, {
+    //renderer: 'svg'
+});
+
+window.onresize = function () {
+    myChart.resize();
+};
+
+const loadingOptions = {
+    fontSize: 18,
+    spinnerRadius: 15,
+    lineWidth: 4
+};
+
+// fetching the data from MaStR can take a while if it's not cached on the server yet
+myChart.showLoading({ ...loadingOptions, text: 'Tagesaktuelle Daten werden geladen...' });
+
+let data;
+try {
+    data = await fetchJson('/data?' + urlParams);
+} catch (error) {
+    myChart.showLoading({ ...loadingOptions, text: 'Daten konnten nicht geladen werden', showSpinner: false });
+    throw error;
+}
+myChart.hideLoading();
 
 const powerInstalledNet = data.map(item => [item.date, item.data.nettoleistungSumme]);
 const batteryCapacity = data.map(item => [item.date, item.data.batteriekapazitaetSumme]);
@@ -41,11 +66,8 @@ function buildTargetSeriesData() {
 
 const targetSeriesData = buildTargetSeriesData();
 
-// the PV chart and the battery chart below share the same time range
-const xAxisRange = {
-    min: new Date(data[0].date).getTime(),
-    max: targetSeriesData[targetSeriesData.length - 1][0]
-};
+// both axes share the same range, so 1 MWh is drawn at the same height as 1 MWp
+const yAxisMax = Math.max(...targetSeriesData.map(item => item[1]), ...powerInstalledNet.map(item => item[1]));
 
 function findYearEndValue(series, date) {
     const year = new Date(date).getFullYear();
@@ -77,11 +99,6 @@ function buildMarkerPoints() {
 }
 
 
-// based on prepared DOM, initialize echarts instance
-const myChart = echarts.init(document.getElementById('chart'), null, {
-    //renderer: 'svg'
-});
-
 const seriesDefaults = {
     type: 'line',
     animation: false,
@@ -102,34 +119,21 @@ const seriesDefaults = {
 };
 
 const option = {
-    title: [
-        {
-            text: `Photovoltaik in ${municipality} bis 2030`,
-            padding: [5, 0, 0, 5],
-            subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
-            subtextStyle: {
-                fontSize: 15
-            }
-        },
-        {
-            text: 'Batteriespeicher (nutzbare Kapazität)',
-            top: '70%',
-            padding: [5, 0, 0, 5],
-            textStyle: {
-                fontSize: 15
-            }
+    title: {
+        text: `Photovoltaik in ${municipality} bis 2030`,
+        padding: [5, 0, 0, 5],
+        subtext: 'Stand: ' + lastUpdateDate.toLocaleDateString('de-DE'),
+        subtextStyle: {
+            fontSize: 15
         }
-    ],
+    },
     tooltip: {
         trigger: 'axis',
         valueFormatter: (value) => value ? (value / 1000).toFixed(2) + ' MWp' : '?',
     },
-    axisPointer: {
-        link: [{ xAxisIndex: 'all' }]
-    },
     legend: {
         icon: 'rect',
-        data: ['Installierte Leistung', 'Ziel'],
+        data: ['Installierte Leistung', 'Ziel', 'Batteriespeicher'],
         right: '10%',
         textStyle: {
             fontSize: 18
@@ -141,39 +145,19 @@ const option = {
             saveAsImage: {}
         }
     },
-    // fixed widths instead of containLabel, so both charts are aligned horizontally
-    grid: [
-        {
-            left: 110,
-            right: 40,
-            top: 60,
-            bottom: '35%'
-        },
-        {
-            left: 110,
-            right: 40,
-            top: '78%',
-            bottom: 40
-        }
-    ],
+    grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+    },
     xAxis: [
         {
             type: 'time',
             boundaryGap: false,
             splitNumber: 11,
-            ...xAxisRange,
             axisLabel: {
                 fontSize: 18
-            }
-        },
-        {
-            type: 'time',
-            gridIndex: 1,
-            boundaryGap: false,
-            splitNumber: 11,
-            ...xAxisRange,
-            axisLabel: {
-                fontSize: 15
             }
         }
     ],
@@ -184,15 +168,19 @@ const option = {
                 formatter: (value) => (value / 1000).toFixed(0) + ' MWp',
                 fontSize: 18
             },
-            max: 'dataMax'
+            max: yAxisMax
         },
         {
             type: 'value',
-            gridIndex: 1,
-            splitNumber: 2,
+            position: 'right',
+            splitLine: {
+                show: false
+            },
+            max: yAxisMax,
             axisLabel: {
-                formatter: (value) => (value / 1000).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' MWh',
-                fontSize: 15
+                formatter: (value) => (value / 1000).toFixed(0) + ' MWh',
+                fontSize: 18,
+                color: '#e69138'
             }
         }
     ],
@@ -243,7 +231,6 @@ const option = {
         {
             ...seriesDefaults,
             name: 'Batteriespeicher',
-            xAxisIndex: 1,
             yAxisIndex: 1,
             data: batteryCapacity,
             color: '#e69138',
@@ -257,6 +244,9 @@ const option = {
             lineStyle: {
                 width: 3
             },
+            areaStyle: {
+                opacity: 0.5
+            },
             tooltip: {
                 valueFormatter: (value) => (value / 1000).toFixed(2) + ' MWh'
             }
@@ -264,8 +254,23 @@ const option = {
     ]
 };
 
-myChart.setOption(option);
-
-window.onresize = function () {
-    myChart.resize();
-};
+myChart.setOption({
+    baseOption: option,
+    media: [
+        {
+            // on narrow screens the legend would overlap the title, so move it below
+            query: { maxWidth: 1100 },
+            option: {
+                legend: {
+                    top: 30,
+                    textStyle: {
+                        fontSize: 15
+                    }
+                },
+                grid: {
+                    top: 85
+                }
+            }
+        }
+    ]
+});
